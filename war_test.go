@@ -17,9 +17,9 @@ func TestBattle(t *testing.T) {
 
 	topCardBefore := g.players[0].hand[len(g.players[0].hand)-1]
 
-	g.Battle()
-	g.Battle()
-	g.Battle()
+	g.Battle(false)
+	g.Battle(false)
+	g.Battle(false)
 
 	topCardAfter := g.players[0].hand[len(g.players[0].hand)-1]
 

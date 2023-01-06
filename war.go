@@ -76,12 +76,14 @@ func (g *Game) isGameFinished() bool {
 	return count <= 1
 }
 
-func (g *Game) Battle() error {
+func (g *Game) Battle(printMessages bool) error {
 	var c1, c2, f1, f2 cards.Card
 	var err error
 	var playerIndex int
 
-	fmt.Printf("-- Battle #%v --\n", g.numBattles)
+	if printMessages {
+		fmt.Printf("-- Battle #%v --\n", g.numBattles)
+	}
 
 	c1, g.players[0].hand, err = cards.TakeCard(g.players[0].hand)
 
@@ -106,7 +108,9 @@ func (g *Game) Battle() error {
 		playerIndex = 1
 	case "Tie":
 		for result == "Tie" {
-			fmt.Println("War!")
+			if printMessages {
+				fmt.Println("War!")
+			}
 
 			f1, g.players[0].hand, err = cards.TakeCard(g.players[0].hand)
 
@@ -155,7 +159,9 @@ func (g *Game) Battle() error {
 	}
 
 	g.updateScores()
-	g.printScores()
+	if printMessages {
+		g.printScores()
+	}
 	g.incrementBattleCount()
 
 	return nil
@@ -190,34 +196,66 @@ func CompareCards(c1 cards.Card, c2 cards.Card) string {
 		result = "Tie"
 	}
 
-	fmt.Printf("%s: (Player1: %v vs. Player2: %v)\n", result, c1.String(), c2.String())
+	if false {
+		fmt.Printf("%s: (Player1: %v vs. Player2: %v)\n", result, c1.String(), c2.String())
+	}
 
 	return result
 }
 
-// Main -----------------------------------------------------------------------
-
-func main() {
+func runAutomatedTwoPlayerGame() string {
 	p1 := Player{name: "P1", score: 0, hand: []cards.Card{}}
 	p2 := Player{name: "P2", score: 0, hand: []cards.Card{}}
 
 	game := CreateGame([]Player{p1, p2})
 
-	for _, player := range game.players {
-		fmt.Println(player.hand)
-	}
-
-	game.printScores()
-
-	fmt.Println(game.numBattles)
-
 	for !game.isGameFinished() {
-		game.Battle()
+		game.Battle(false)
 
-		if game.numBattles > 50000 {
-			fmt.Println("Game aborted. No winner after 50000 battles.")
-			break
+		if game.numBattles > 10000 {
+			fmt.Println("Game aborted. No winner after 10000 battles.")
+			return "Aborted"
 		}
 	}
 
+	// fmt.Printf("P1 %v, P2 %v\n", game.players[0].score, game.players[1].score)
+
+	if game.players[0].score == game.players[1].score {
+		return "Tie"
+	}
+
+	if game.players[0].score > game.players[1].score {
+		return "P1 wins"
+	}
+
+	return "P2 wins"
+}
+
+func runSimulations(n int) {
+	unfinishedCount, p1wins, p2wins := 0, 0, 0
+	var result string
+
+	fmt.Println("Running...")
+
+	for i := 0; i < n; i++ {
+		// fmt.Printf("Running game %v\n", i+1)
+		result = runAutomatedTwoPlayerGame()
+		switch result {
+		case "Aborted":
+			unfinishedCount++
+		case "P1 wins":
+			p1wins++
+		case "P2 wins":
+			p2wins++
+		default:
+		}
+	}
+
+	fmt.Printf("Ran %v games. P1 won %v games, P2 won %v games, %v games did not complete.\n", n, p1wins, p2wins, unfinishedCount)
+}
+
+// Main -----------------------------------------------------------------------
+
+func main() {
+	runSimulations(1000)
 }
