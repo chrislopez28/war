@@ -1,20 +1,10 @@
 package main
 
 import (
-	"cards"
 	"fmt"
+
+	"github.com/chrislopez28/cards"
 )
-
-type Player struct {
-	name  string
-	score int
-	hand  []cards.Card
-}
-
-type Game struct {
-	players    [2]Player
-	numBattles int64
-}
 
 var cardValue = map[cards.CardValue]int{
 	cards.Two:   2,
@@ -32,14 +22,34 @@ var cardValue = map[cards.CardValue]int{
 	cards.Ace:   14,
 }
 
-func CreateGame() Game {
+// Player ---------------------------------------------------------------------
+
+type Player struct {
+	name  string
+	score int
+	hand  []cards.Card
+}
+
+func (p Player) Name() string {
+	return p.name
+}
+
+// Game -----------------------------------------------------------------------
+
+type Game struct {
+	players    []Player
+	numBattles int64
+}
+
+func CreateGame(players []Player) Game {
 	d := cards.LoadDeck()
 	d.Shuffle()
 
-	p1 := Player{name: "P1", score: 0, hand: d.DealCards(26)}
-	p2 := Player{name: "P2", score: 0, hand: d.DealCards(26)}
+	for i := range players {
+		players[i].hand = d.DealCards(26)
+	}
 
-	g := Game{players: [2]Player{p1, p2}}
+	g := Game{players: players}
 	g.updateScores()
 	g.numBattles = 0
 
@@ -66,32 +76,12 @@ func (g *Game) isGameFinished() bool {
 	return count <= 1
 }
 
-func CompareCards(c1 cards.Card, c2 cards.Card) string {
-	val1 := cardValue[c1.Value]
-	val2 := cardValue[c2.Value]
-	result := ""
-
-	if val1 > val2 {
-		result = "P1 Wins"
-	}
-	if val1 < val2 {
-		result = "P2 Wins"
-	}
-	if val1 == val2 {
-		result = "Tie"
-	}
-
-	fmt.Printf("%s: (Player1: %v vs. Player2: %v)\n", result, c1.String(), c2.String())
-
-	return result
-}
-
 func (g *Game) Battle() error {
 	var c1, c2, f1, f2 cards.Card
 	var err error
 	var playerIndex int
 
-	fmt.Printf("-- Battle #%v --", g.numBattles)
+	fmt.Printf("-- Battle #%v --\n", g.numBattles)
 
 	c1, g.players[0].hand, err = cards.TakeCard(g.players[0].hand)
 
@@ -164,7 +154,6 @@ func (g *Game) Battle() error {
 		}
 	}
 
-	// fmt.Println(c1, c2, result)
 	g.updateScores()
 	g.printScores()
 	g.incrementBattleCount()
@@ -178,23 +167,41 @@ func (g *Game) incrementBattleCount() {
 
 func (g *Game) printScores() {
 	fmt.Println("*** Scores ***")
-	for i, player := range g.players {
-		fmt.Printf("P%v:%v  ", i, player.score)
+	for _, player := range g.players {
+		fmt.Printf("%v:%v  ", player.Name(), player.score)
 	}
 	fmt.Println()
 }
 
-// func counter() {
-// 	i := 0
-// 	for {
-// 		// fmt.Println(i)
-// 		time.Sleep(time.Second * 1)
-// 		i++
-// 	}
-// }
+// Helper Functions -----------------------------------------------------------
+
+func CompareCards(c1 cards.Card, c2 cards.Card) string {
+	val1 := cardValue[c1.Value]
+	val2 := cardValue[c2.Value]
+	result := ""
+
+	if val1 > val2 {
+		result = "P1 Wins"
+	}
+	if val1 < val2 {
+		result = "P2 Wins"
+	}
+	if val1 == val2 {
+		result = "Tie"
+	}
+
+	fmt.Printf("%s: (Player1: %v vs. Player2: %v)\n", result, c1.String(), c2.String())
+
+	return result
+}
+
+// Main -----------------------------------------------------------------------
 
 func main() {
-	game := CreateGame()
+	p1 := Player{name: "P1", score: 0, hand: []cards.Card{}}
+	p2 := Player{name: "P2", score: 0, hand: []cards.Card{}}
+
+	game := CreateGame([]Player{p1, p2})
 
 	for _, player := range game.players {
 		fmt.Println(player.hand)
@@ -202,11 +209,15 @@ func main() {
 
 	game.printScores()
 
+	fmt.Println(game.numBattles)
+
 	for !game.isGameFinished() {
-		// go counter()
 		game.Battle()
-		// fmt.Println("Press the Enter Key to stop anytime")
-		// fmt.Scanln()
+
+		if game.numBattles > 50000 {
+			fmt.Println("Game aborted. No winner after 50000 battles.")
+			break
+		}
 	}
 
 }
